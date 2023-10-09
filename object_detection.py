@@ -52,7 +52,7 @@ cap = cv2.VideoCapture(camera_id)
 cap.set(3, 1280)
 cap.set(4, 720)
 
-#class id that we want to detect
+#id untuk orang adalah 0, lainnya bisa cek di https://gist.github.com/tersekmatija/9d00c4683d52d94cf348acae29e8db1a
 class_id = 0
 
 #definisikan daerah yang berbahaya jika terdapat orang yang berada di daerah tersebut
@@ -70,12 +70,12 @@ def check_intersection(polygon_1: np.ndarray, polygon_2: np.ndarray) -> bool:
 
 #definisikan fungsi untuk mendeteksi objek pada gambar
 def detect_image():
-    # read frame from webcam
+    # baca gambar dari kamera
     success, img = cap.read()
     status = "Aman"
     results = model.predict(img, verbose=False)
 
-    # draw danger zone
+    # gambarkan daerah berbahaya dalam kamera
     cv2.polylines(img, [danger_zone_polygon], True, (0, 0, 255), 1)
     cv2.putText(img, "Danger Zone", danger_zone_polygon[0], font, fontScale, color, thickness)
 
@@ -86,11 +86,12 @@ def detect_image():
         for box in boxes:
             if int(box.cls) != class_id:
                 continue
-            # bounding box
+
+            # ambil koordinat box dari hasil deteksi
             x1, y1, x2, y2 = box.xyxy[0]
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
 
-            # check if box in danger zone by checking if there any intersection between box and danger zone
+            # jika ada orang yang berada di daerah berbahaya, maka status akan berubah menjadi bahaya
             if check_intersection(np.array([[x1, y1], [x2, y2], [x2, y1], [x1, y2]]), danger_zone_polygon):
                 status = "Bahaya"
 
@@ -121,7 +122,9 @@ def detect_image():
 
 while True:
     status = detect_image()
-    if cv2.waitKey(1) == ord('q'):
+
+    #keluar jika pengguna menekan tombol q
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 cap.release()
 cv2.destroyAllWindows()
