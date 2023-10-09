@@ -1,0 +1,4 @@
+ultralytics
+shapely
+opencv-python
+numpy
