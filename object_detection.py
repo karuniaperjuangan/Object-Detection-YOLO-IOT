@@ -15,10 +15,8 @@ from websockets.sync.client import connect
 """Perlu diingat bahwa koordinat XY ditinjau dari sudut kiri atas gambar, dengan sumbu X mengarah ke kanan dan sumbu Y mengarah ke bawah."""
 
 
-#start websocket server without interrupting the main program
 
-# create handler for each connection
-
+# list untuk menyimpan daftar client yang terhubung
 clients = []
 async def handler(websocket, path):
     try:
@@ -32,11 +30,14 @@ async def handler(websocket, path):
             # send data to all connected clients
             websockets.broadcast(clients, data, raise_exceptions=False)
             #await asyncio.sleep(0.5)
+
+    # menghindari error saat client disconnect
     except websockets.exceptions.ConnectionClosed:
         print("Connection closed")
         clients.remove(websocket)
         print(clients)
- 
+
+#start websocket server without interrupting the main program
 async def start_server():
     async with websockets.serve(handler, "localhost", 12302):
         await asyncio.Future()
@@ -48,7 +49,7 @@ t = threading.Thread(target=loop.run_until_complete, daemon=True, args=(start_se
 t.start()
 print("Server started")
 
-#load model
+#load model, ada beberapa model yang bisa digunakan, bisa dilihat di https://docs.ultralytics.com/models/yolov8/#supported-modes
 model = YOLO("yolov8n.pt")
 
 #configuration for text
@@ -68,7 +69,7 @@ cap.set(4, 720)
 #id untuk orang adalah 0, lainnya bisa cek di https://gist.github.com/tersekmatija/9d00c4683d52d94cf348acae29e8db1a
 class_id = 0
 
-#definisikan daerah yang berbahaya jika terdapat orang yang berada di daerah tersebut
+#definisikan daerah yang berbahaya jika terdapat orang yang berada di daerah terlarang pada citra
 danger_zone_polygon = np.array([
     [640, 180],
     [480, 540],
