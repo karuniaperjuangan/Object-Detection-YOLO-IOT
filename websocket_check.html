@@ -7,12 +7,23 @@
 </head>
 <body>
     <h1>WebSocket Listen</h1>
-    <div id="messages"></div>
+    <p id="messages"></p>
     <script>
         var ws = new WebSocket("ws://localhost:12302");
+        //If connected
+        ws.onopen = function() {
+            console.log("Connected.");
+        };
         ws.onmessage = function(e) {
+            console.log(e.data);
             var messages = document.getElementById('messages');
-            messages.innerHTML = e.data + '<br>' + messages.innerHTML;
+            messages.innerHTML = e.data;
         };
     </script>
+    <style>
+        #messages {
+            font-size: 72px;
+            font-weight: bold;
+        }
+    </style>
 </html>

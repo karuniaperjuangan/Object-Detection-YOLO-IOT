@@ -11,6 +11,7 @@ from websockets.server import serve
 import time
 import threading
 import os
+from websockets.sync.client import connect
 """Perlu diingat bahwa koordinat XY ditinjau dari sudut kiri atas gambar, dengan sumbu X mengarah ke kanan dan sumbu Y mengarah ke bawah."""
 
 
@@ -18,11 +19,23 @@ import os
 
 # create handler for each connection
 
+clients = []
 async def handler(websocket, path):
-    while True:
-        #send hello message
-        await websocket.send("Hello")
-        asyncio.sleep(1)
+    try:
+        # register new client
+        clients.append(websocket)
+        print(clients)
+        while True:
+            # receive data from client
+            data = await websocket.recv()
+            #print(data)
+            # send data to all connected clients
+            websockets.broadcast(clients, data, raise_exceptions=False)
+            #await asyncio.sleep(0.5)
+    except websockets.exceptions.ConnectionClosed:
+        print("Connection closed")
+        clients.remove(websocket)
+        print(clients)
  
 async def start_server():
     async with websockets.serve(handler, "localhost", 12302):
@@ -73,7 +86,7 @@ def detect_image():
     # baca gambar dari kamera
     success, img = cap.read()
     status = "Aman"
-    results = model.predict(img, verbose=False)
+    results = model.predict(img, verbose=False, stream=True)
 
     # gambarkan daerah berbahaya dalam kamera
     cv2.polylines(img, [danger_zone_polygon], True, (0, 0, 255), 1)
@@ -120,11 +133,24 @@ def detect_image():
     #if cv2.waitKey(1) == ord('q'):
     #    break
 
+last_status = "Aman"
 while True:
-    status = detect_image()
-
-    #keluar jika pengguna menekan tombol q
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-cap.release()
-cv2.destroyAllWindows()
+    try:
+        with connect("ws://localhost:12302") as websocket:
+            while True:
+                status = detect_image()
+                if status != last_status:
+                    last_status = status
+                    websocket.send(status)
+                #keluar jika pengguna menekan tombol q
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+    except websockets.exceptions.ConnectionClosed:
+        continue
+    except KeyboardInterrupt:
+        cap.release()
+        cv2.destroyAllWindows()
+        break 
